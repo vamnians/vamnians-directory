@@ -246,7 +246,12 @@
       <span class="mark">Vamnians</span>
       <span class="sub">Alumni Directory — Prototype</span>
     </div>
-    <p class="tagline">A closed, verified network for VAMNICOM alumni since the 1993–95 batch. Directory below uses real batch/city/company records from the 2014 alumni database; the sign-up queue uses illustrative names.</p>
+    <p class="tagline" style="margin-bottom:2px">
+      Vaikunth Mehta National Institute of Cooperative Management, Pune (VAMNICOM)
+    </p>
+    <p class="hint" style="display:block;margin:0 0 10px">
+      A National Institute of the National Council for Cooperative Training — Ministry of Cooperation, Government of India
+    </p>
     <nav class="tabs" id="tabs">
       <button data-view="directory" class="active">Directory</button>
       <button data-view="signup">Sign up</button>
@@ -271,6 +276,7 @@
         <div><label for="fDistrict">District</label><select id="fDistrict" disabled><option value="">All districts</option></select></div>
         <div><label for="fChapter">Chapter</label><select id="fChapter"><option value="">All chapters</option></select></div>
         <div><label for="fStream">Stream / sector</label><select id="fStream"><option value="">All streams / sectors</option></select></div>
+        <div><label for="fSector">Industry sector</label><select id="fSector"><option value="">All industries</option></select></div>
         <div><label for="fExp">Experience</label>
           <select id="fExp">
             <option value="">Any experience</option>
@@ -348,6 +354,31 @@
           <div class="field"><label>Current company</label><input required id="su_company" placeholder="e.g. HDFC Life" /></div>
           <div class="field"><label>Current position</label><input required id="su_position" placeholder="e.g. AVP & Head" /></div>
         </div>
+        <div class="field"><label>Industry / sector you currently work in <span class="hint" style="display:inline">(so juniors can find who's in their field)</span></label>
+          <select id="su_sector">
+            <option value="">Select…</option>
+            <option>Banking &amp; Financial Services</option>
+            <option>NBFC &amp; Lending</option>
+            <option>Insurance</option>
+            <option>IT / Technology</option>
+            <option>E-commerce</option>
+            <option>FMCG</option>
+            <option>Retail</option>
+            <option>Manufacturing</option>
+            <option>Agri-Business &amp; Agri-Tech</option>
+            <option>Cooperative Sector</option>
+            <option>Consulting</option>
+            <option>Telecom</option>
+            <option>Healthcare &amp; Pharma</option>
+            <option>Education</option>
+            <option>Government / PSU</option>
+            <option>Real Estate &amp; Infrastructure</option>
+            <option>Logistics &amp; Supply Chain</option>
+            <option>Media &amp; Entertainment</option>
+            <option>Startup / Entrepreneurship</option>
+            <option>Other</option>
+          </select>
+        </div>
         <div class="field">
           <label>Phone / WhatsApp</label><input required id="su_phone" placeholder="+91 …" />
         </div>
@@ -423,7 +454,9 @@
 
 </div>
 
-<footer class="note">Prototype for the VAMNICOM alumni directory strategy. Directory records (name, batch, city, company, designation) are from the 2014 alumni database export; phone numbers and email addresses from that file are not included here. Verification queue entries and login credentials are illustrative, not real.</footer>
+<footer class="note">
+  Vamnians is an independent alumni initiative for VAMNICOM — Vaikunth Mehta National Institute of Cooperative Management, Pune, a National Institute of the National Council for Cooperative Training, Ministry of Cooperation, Government of India. This is a prototype for the VAMNICOM alumni directory strategy, not an official Institute or Government portal. Directory records (name, batch, city, company, designation) are from the 2014 alumni database export; phone numbers and email addresses from that file are not included here. Verification queue entries and login credentials are illustrative, not real.
+</footer>
 
 <script>
 (function(){
@@ -468,6 +501,8 @@
       position: position || "Not updated",
       experience: experience==null ? null : experience,
       bio: sector || (company ? company.split(" ")[0] : "\u2014"),
+      sector: sector || null,
+      linkedin: null,
       verified: true
     };
   });
@@ -476,11 +511,13 @@
     { id:"p1", name:"Niteesh Kumar S", batch:"2022–24", stream:"Marketing Management",
       state:null, district:null, cityArea:"", city:"Bangalore",
       company:"Flipkart", position:"Category Manager", phone:"+91 90000 00001", email:"niteesh@example.com",
-      linkedin:"—", bio:"e-commerce, category growth", batchConfirmed:false, cityConfirmed:false, submitted:"2 days ago" },
+      linkedin:"https://linkedin.com/in/niteesh-kumar-demo", sector:"E-commerce",
+      bio:"e-commerce, category growth", batchConfirmed:false, cityConfirmed:false, submitted:"2 days ago" },
     { id:"p2", name:"Ishwari Jadhav", batch:"2018–20", stream:"HR Management",
       state:"Telangana", district:"Hyderabad", cityArea:"", city:"Hyderabad, Telangana",
       company:"Deloitte", position:"Senior Consultant", phone:"+91 90000 00002", email:"ishwari@example.com",
-      linkedin:"—", bio:"talent strategy, L&D", batchConfirmed:true, cityConfirmed:false, submitted:"5 days ago" }
+      linkedin:"https://linkedin.com/in/ishwari-jadhav-demo", sector:"Consulting",
+      bio:"talent strategy, L&D", batchConfirmed:true, cityConfirmed:false, submitted:"5 days ago" }
   ];
 
   // ---------- chapters (many districts, even across states, grouped under one meet-up city) ----------
@@ -574,6 +611,8 @@
   populateSelect(document.getElementById("fState"), STATE_LIST);
   populateSelect(document.getElementById("fCity"), REAL_CITIES);
   populateSelect(document.getElementById("fStream"), REAL_STREAMS);
+  var REAL_SECTORS = uniqueSorted(directory.map(function(p){ return p.sector || null; }));
+  populateSelect(document.getElementById("fSector"), REAL_SECTORS);
   populateSelect(document.getElementById("su_batch"), BATCHES);
   document.getElementById("su_batch").insertAdjacentHTML("afterbegin", "<option value=''>Select…</option>");
   populateSelect(document.getElementById("su_state"), STATE_LIST);
@@ -608,6 +647,7 @@
     fChapter: document.getElementById("fChapter"),
     fCity: document.getElementById("fCity"),
     fStream: document.getElementById("fStream"),
+    fSector: document.getElementById("fSector"),
     fExp: document.getElementById("fExp"),
     results: document.getElementById("results"),
     resultLine: document.getElementById("resultLine"),
@@ -634,7 +674,8 @@
   function renderDirectory(){
     var kw = els.kw.value.trim().toLowerCase();
     var batch = els.fBatch.value, state = els.fState.value, district = els.fDistrict.value,
-        chapterName = els.fChapter.value, city = els.fCity.value, stream = els.fStream.value, exp = els.fExp.value;
+        chapterName = els.fChapter.value, city = els.fCity.value, stream = els.fStream.value,
+        sector = els.fSector.value, exp = els.fExp.value;
     var chapterId = chapterName ? CHAPTER_NAME_TO_ID[chapterName] : "";
 
     var filtered = directory.filter(function(p){
@@ -645,9 +686,10 @@
       if (chapterId){ var pc = getChapterFor(p); if (!pc || pc.id !== chapterId) return false; }
       if (city && p.city !== city) return false;
       if (stream && p.stream !== stream) return false;
+      if (sector && p.sector !== sector) return false;
       if (!expInRange(p.experience, exp)) return false;
       if (kw){
-        var hay = (p.name+" "+p.company+" "+p.position+" "+p.bio+" "+p.city).toLowerCase();
+        var hay = (p.name+" "+p.company+" "+p.position+" "+p.bio+" "+p.city+" "+(p.sector||"")).toLowerCase();
         if (hay.indexOf(kw) === -1) return false;
       }
       return true;
@@ -670,14 +712,19 @@
       card.className = "panel card";
       var locBadge = p.district ? "" : " <span class='hint' style='display:inline'>(unverified spelling)</span>";
       var pc = getChapterFor(p);
+      var linkedinRow = (p.linkedin && p.linkedin !== "—")
+        ? "<div class='role'><a href='"+escapeHtml(p.linkedin)+"' target='_blank' rel='noopener' style='color:var(--gold-ink);text-decoration:none;font-weight:600'>LinkedIn profile ↗</a></div>"
+        : "";
       card.innerHTML =
         "<div class='name'>"+escapeHtml(p.name)+"</div>"+
         "<div class='role'><b>"+escapeHtml(p.position)+"</b> · "+escapeHtml(p.company)+"</div>"+
         "<div class='role'>"+escapeHtml(p.locationLabel)+locBadge+" · "+(p.experience==null?"—":p.experience+" yrs")+" experience</div>"+
+        linkedinRow+
         "<div class='tagrow'>"+
           "<span class='tag batch'>Batch "+escapeHtml(p.batch)+"</span>"+
           (pc ? "<span class='tag' style='color:var(--gold-ink)'>"+escapeHtml(pc.name)+" chapter</span>" : "")+
           "<span class='tag'>"+escapeHtml(p.stream)+"</span>"+
+          (p.sector ? "<span class='tag' style='color:var(--gold-ink)'>"+escapeHtml(p.sector)+"</span>" : "")+
           "<span class='tag'>"+escapeHtml(p.bio)+"</span>"+
         "</div>";
       els.results.appendChild(card);
@@ -690,12 +737,12 @@
     });
   }
 
-  [els.kw, els.fBatch, els.fState, els.fDistrict, els.fChapter, els.fCity, els.fStream, els.fExp].forEach(function(el){
+  [els.kw, els.fBatch, els.fState, els.fDistrict, els.fChapter, els.fCity, els.fStream, els.fSector, els.fExp].forEach(function(el){
     el.addEventListener("input", renderDirectory);
     el.addEventListener("change", renderDirectory);
   });
   els.clearFilters.addEventListener("click", function(){
-    els.kw.value=""; els.fBatch.value=""; els.fChapter.value=""; els.fCity.value=""; els.fStream.value=""; els.fExp.value="";
+    els.kw.value=""; els.fBatch.value=""; els.fChapter.value=""; els.fCity.value=""; els.fStream.value=""; els.fSector.value=""; els.fExp.value="";
     els.fState.value=""; els.fState.dispatchEvent(new Event("change"));
     renderDirectory();
   });
@@ -800,6 +847,7 @@
       city: locationLabel || "Not specified",
       company: document.getElementById("su_company").value.trim(),
       position: document.getElementById("su_position").value.trim(),
+      sector: document.getElementById("su_sector").value || null,
       phone: document.getElementById("su_phone").value.trim(),
       email: document.getElementById("su_email").value.trim(),
       linkedin: document.getElementById("su_linkedin").value.trim() || "—",
@@ -834,7 +882,7 @@
       item.innerHTML =
         "<div class='queue-head'>"+
           "<div><div class='name'>"+escapeHtml(p.name)+"</div>"+
-            "<div class='queue-meta'>Batch "+escapeHtml(p.batch)+" · "+escapeHtml(p.stream)+" · "+escapeHtml(p.city)+" · "+escapeHtml(p.company)+", "+escapeHtml(p.position)+"</div></div>"+
+            "<div class='queue-meta'>Batch "+escapeHtml(p.batch)+" · "+escapeHtml(p.stream)+" · "+escapeHtml(p.city)+" · "+escapeHtml(p.company)+", "+escapeHtml(p.position)+(p.sector?" · "+escapeHtml(p.sector):"")+"</div></div>"+
           "<span class='status pending'>Pending · "+escapeHtml(p.submitted)+"</span>"+
         "</div>"+
         "<div class='checks'>"+
@@ -873,7 +921,8 @@
       directory.unshift({
         id: "a-"+p.id, name:p.name, batch:p.batch, stream:p.stream, city:p.city,
         state: p.state || null, district: p.district || null, locationLabel: p.city, company:p.company,
-        position:p.position, experience: Math.max(0, CURRENT_YEAR-(startY+2)), bio:p.bio, email:p.email, verified:true
+        position:p.position, experience: Math.max(0, CURRENT_YEAR-(startY+2)), bio:p.bio, email:p.email,
+        sector: p.sector || null, linkedin: p.linkedin || null, verified:true
       });
       var box = document.getElementById("cred-"+p.id);
       box.hidden = false;
@@ -1199,5 +1248,6 @@
   renderAccount();
 })();
 </script>
+
 </body>
 </html>
