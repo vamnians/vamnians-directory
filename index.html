@@ -12,26 +12,26 @@
 
 <style>
   :root{
-    --navy:#16233f; --navy-2:#1f3157; --ink:#1a1e29; --muted:#5c6270; --line:#e4ddc9;
-    --bg:#f7f4ea; --panel:#ffffff; --gold:#b6862c; --gold-ink:#7a5a1c;
-    --good:#2f7d5c; --good-bg:#e5f3ec; --warn:#a15b12; --warn-bg:#fbeedc; --bad:#a23131; --bad-bg:#fbe8e6;
-    --radius:10px; --shadow:0 1px 2px rgba(22,35,63,.06), 0 8px 24px -12px rgba(22,35,63,.18);
+    --navy:#0f1c33; --navy-2:#1a2c4d; --ink:#1c2230; --muted:#5a6072; --line:#dfe1e8;
+    --bg:#e8e9e4; --panel:#ffffff; --gold:#9c7a2e; --gold-ink:#6e5320;
+    --good:#2f6d52; --good-bg:#e6f1ec; --warn:#95591a; --warn-bg:#faeee0; --bad:#9c3232; --bad-bg:#f8e9e8;
+    --radius:8px; --shadow:0 1px 2px rgba(15,28,51,.05), 0 10px 26px -14px rgba(15,28,51,.22);
     --font-display:'Fraunces',Georgia,'Times New Roman',serif;
     --font-body:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --navy:#0f1830; --navy-2:#18294d; --ink:#eceef3; --muted:#a3a9ba; --line:#2a3050;
-      --bg:#0d1120; --panel:#151a2c; --gold:#d7a53f; --gold-ink:#f0c264;
-      --good:#4fbf8f; --good-bg:#12291f; --warn:#e0a24d; --warn-bg:#2e230f; --bad:#e2716a; --bad-bg:#301616;
+      --navy:#0a1220; --navy-2:#132038; --ink:#e9eaef; --muted:#9ba0b3; --line:#2a3148;
+      --bg:#0c1018; --panel:#141a28; --gold:#c9a545; --gold-ink:#e3c36f;
+      --good:#4fa47e; --good-bg:#12271f; --warn:#c98b41; --warn-bg:#2c220f; --bad:#c46a63; --bad-bg:#2c1717;
       --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 30px -14px rgba(0,0,0,.6);
     }
   }
   :root[data-theme="dark"]{
-    --navy:#0f1830; --navy-2:#18294d; --ink:#eceef3; --muted:#a3a9ba; --line:#2a3050;
-    --bg:#0d1120; --panel:#151a2c; --gold:#d7a53f; --gold-ink:#f0c264;
-    --good:#4fbf8f; --good-bg:#12291f; --warn:#e0a24d; --warn-bg:#2e230f; --bad:#e2716a; --bad-bg:#301616;
+    --navy:#0a1220; --navy-2:#132038; --ink:#e9eaef; --muted:#9ba0b3; --line:#2a3148;
+    --bg:#0c1018; --panel:#141a28; --gold:#c9a545; --gold-ink:#e3c36f;
+    --good:#4fa47e; --good-bg:#12271f; --warn:#c98b41; --warn-bg:#2c220f; --bad:#c46a63; --bad-bg:#2c1717;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 30px -14px rgba(0,0,0,.6);
   }
 
@@ -99,10 +99,13 @@
     text-decoration:underline;text-underline-offset:2px;}
 
   .results{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;}
-  .card{padding:16px;display:flex;flex-direction:column;gap:8px;}
-  .card .name{font-family:var(--font-display);font-size:18px;font-weight:600;}
+  .card{padding:16px;display:flex;flex-direction:column;gap:8px;position:relative;
+    border-color:#d7d9d3;}
+  .card .name{font-family:var(--font-display);font-size:18px;font-weight:600;padding-right:28px;}
   .card .role{color:var(--muted);font-size:13.5px;}
   .card .role b{color:var(--ink);font-weight:600;}
+  .card .li-badge{position:absolute;top:14px;right:14px;width:22px;height:22px;flex-shrink:0;}
+  .card .li-badge svg{display:block;width:100%;height:100%;}
   .tagrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
   .tag{font-family:var(--font-mono);font-size:10.5px;padding:3px 8px;border-radius:999px;
     background:var(--bg);border:1px solid var(--line);color:var(--muted);}
@@ -208,7 +211,8 @@
   @media (max-width:680px){
     .shell{padding:0 14px 56px;}
     .top-inner{padding:0;}
-    header.top{padding:10px 14px;position:sticky;top:0;z-index:50;background:var(--bg,#12172b);
+    header.top{padding:10px 14px;position:sticky;top:0;z-index:50;
+      background:linear-gradient(160deg,var(--navy),var(--navy-2));
       box-shadow:0 2px 10px rgba(0,0,0,.25);}
     .brand .mark{font-size:20px;}
     .brand .sub{font-size:10px;}
@@ -657,6 +661,16 @@
   populateSelect(document.getElementById("su_state"), STATE_LIST);
 
   // ---------- live sync: pull fresh data from the master Google Sheet ----------
+  function cleanBatchValue(v){
+    if (v == null || v === "") return v;
+    var s = String(v);
+    // Google Sheets sometimes auto-converts a typed batch like "2004-06" into a
+    // full date/timestamp when the cell is edited manually. Recover just the
+    // year-month the person typed instead of showing the raw ISO timestamp.
+    var m = s.match(/^(\d{4})-(\d{2})-\d{2}T/);
+    if (m) return m[1] + "-" + m[2];
+    return s;
+  }
   function normalizeLiveRecord(o){
     var city = o["City (legacy text)"] || "";
     var state = o["State"] || null;
@@ -668,7 +682,7 @@
     return {
       id: o["ID"],
       name: o["Name"],
-      batch: o["Batch"],
+      batch: cleanBatchValue(o["Batch"]),
       stream: stream || "Not specified (pre-dates stream tracking)",
       city: city || "Not updated",
       state: state,
@@ -852,20 +866,27 @@
       card.className = "panel card";
       var locBadge = p.district ? "" : " <span class='hint' style='display:inline'>(unverified spelling)</span>";
       var pc = getChapterFor(p);
-      var linkedinRow = (p.linkedin && p.linkedin !== "—")
-        ? "<div class='role'><a href='"+escapeHtml(p.linkedin)+"' target='_blank' rel='noopener' style='color:var(--gold-ink);text-decoration:none;font-weight:600'>LinkedIn profile ↗</a></div>"
+      var liBadge = (p.linkedin && p.linkedin !== "—")
+        ? "<a class='li-badge' href='"+escapeHtml(p.linkedin)+"' target='_blank' rel='noopener' title='LinkedIn profile' aria-label='LinkedIn profile'>"+
+          "<svg viewBox='0 0 72 72' xmlns='http://www.w3.org/2000/svg'>"+
+          "<rect width='72' height='72' rx='12' fill='#0A66C2'/>"+
+          "<path fill='#fff' d='M20.3 27.7h8.4v27.1h-8.4V27.7zm4.2-13.4c2.7 0 4.9 2.2 4.9 4.9s-2.2 4.9-4.9 4.9-4.9-2.2-4.9-4.9 2.2-4.9 4.9-4.9zM35.9 27.7h8v3.7h.1c1.1-2.1 3.9-4.3 8-4.3 8.6 0 10.2 5.6 10.2 13v14.7h-8.4V41.7c0-3.2-.1-7.3-4.4-7.3-4.4 0-5.1 3.5-5.1 7.1v13.3h-8.4V27.7z'/>"+
+          "</svg></a>"
         : "";
+      var sectorInline = p.sector ? " · "+escapeHtml(p.sector) : "";
+      var chapterInline = pc ? " · <span style='color:var(--gold-ink);font-weight:600'>"+escapeHtml(pc.name)+" chapter</span>" : "";
+      var expTag = p.experience==null ? "" : "<span class='tag'>"+p.experience+" yrs experience</span>";
+      var bioText = (p.bio && p.bio !== "—" && p.bio !== p.sector) ? p.bio : "";
       card.innerHTML =
+        liBadge+
         "<div class='name'>"+escapeHtml(p.name)+"</div>"+
-        "<div class='role'><b>"+escapeHtml(p.position)+"</b> · "+escapeHtml(p.company)+"</div>"+
-        "<div class='role'>"+escapeHtml(p.locationLabel)+locBadge+" · "+(p.experience==null?"—":p.experience+" yrs")+" experience</div>"+
-        linkedinRow+
+        "<div class='role'><b>"+escapeHtml(p.position)+"</b> · "+escapeHtml(p.company)+sectorInline+"</div>"+
+        "<div class='role'>"+escapeHtml(p.locationLabel)+locBadge+chapterInline+"</div>"+
         "<div class='tagrow'>"+
           "<span class='tag batch'>Batch "+escapeHtml(p.batch)+"</span>"+
-          (pc ? "<span class='tag' style='color:var(--gold-ink)'>"+escapeHtml(pc.name)+" chapter</span>" : "")+
+          expTag+
           "<span class='tag'>"+escapeHtml(p.stream)+"</span>"+
-          (p.sector ? "<span class='tag' style='color:var(--gold-ink)'>"+escapeHtml(p.sector)+"</span>" : "")+
-          "<span class='tag'>"+escapeHtml(p.bio)+"</span>"+
+          (bioText ? "<span class='tag'>"+escapeHtml(bioText)+"</span>" : "")+
         "</div>";
       els.results.appendChild(card);
     });
